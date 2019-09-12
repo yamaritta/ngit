@@ -80,7 +80,7 @@ namespace NGit.Transport
 				return NONE;
 			}
 			string type = Sharpen.Runtime.Substring(hdr, 0, sp);
-			if (Sharpen.Runtime.EqualsIgnoreCase(HttpAuthMethod.Basic.NAME, type))
+			if (Sharpen.Runtime.EqualsIgnoreCase(HttpAuthMethod.Basic.NAME, type) || Sharpen.Runtime.EqualsIgnoreCase(HttpAuthMethod.Bearer.NAME, type))
 			{
 				return new HttpAuthMethod.Basic();
 			}
@@ -196,9 +196,35 @@ namespace NGit.Transport
 			}
 		}
 
-		/// <summary>Performs HTTP digest authentication.</summary>
-		/// <remarks>Performs HTTP digest authentication.</remarks>
-		private class Digest : HttpAuthMethod
+        /// <summary>Performs HTTP bearer authentication.</summary>
+        /// <remarks>Performs HTTP bearer authentication.</remarks>
+        private class Bearer : HttpAuthMethod
+        {
+            internal static readonly string NAME = "Bearer";
+
+            private string user;
+
+            private string pass;
+
+            internal override void Authorize(string username, string password)
+            {
+                this.user = username;
+                this.pass = password;
+            }
+
+            /// <exception cref="System.IO.IOException"></exception>
+            internal override void ConfigureRequest(HttpURLConnection conn)
+            {
+                string ident = user + ":" + pass;
+                string enc = Base64.EncodeBytes(Sharpen.Runtime.GetBytesForString(ident, "UTF-8")
+                );
+                conn.SetRequestProperty(HttpSupport.HDR_AUTHORIZATION, NAME + " " + enc);
+            }
+        }
+
+        /// <summary>Performs HTTP digest authentication.</summary>
+        /// <remarks>Performs HTTP digest authentication.</remarks>
+        private class Digest : HttpAuthMethod
 		{
 			internal static readonly string NAME = "Digest";
 
